@@ -1,0 +1,19 @@
+services:
+  db:
+    image: postgres:17
+    environment:
+      POSTGRES_USER: igazi
+      POSTGRES_PASSWORD: igazi
+      POSTGRES_DB: igazi_lifeline
+    ports:
+      - "5432:5432"
+    volumes:
+      - igazi_pg:/var/lib/postgresql/data
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U igazi -d igazi_lifeline"]
+      interval: 5s
+      timeout: 5s
+      retries: 10
+
+volumes:
+  igazi_pg:

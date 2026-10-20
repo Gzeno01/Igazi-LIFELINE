@@ -1,0 +1,252 @@
+generator client {
+  provider = "prisma-client"
+  output   = "../src/generated/prisma"
+}
+
+datasource db {
+  provider = "postgresql"
+}
+
+enum UserRole {
+  DONOR
+  VERIFICATION_OFFICER
+  BUSINESS_PARTNER
+  ADMIN
+}
+
+enum AccountStatus {
+  ACTIVE
+  SUSPENDED
+}
+
+enum BusinessStatus {
+  PENDING
+  APPROVED
+  SUSPENDED
+}
+
+enum DonationStatus {
+  PENDING
+  VERIFIED
+  REJECTED
+}
+
+enum VerificationDecisionType {
+  APPROVED
+  REJECTED
+}
+
+enum RedemptionStatus {
+  PENDING
+  REDEEMED
+  FAILED
+}
+
+enum BlockchainTxKind {
+  ISSUANCE
+  REDEMPTION
+}
+
+enum BlockchainTxStatus {
+  PENDING
+  CONFIRMED
+  FAILED
+}
+
+enum RewardTransactionType {
+  ISSUE
+  REDEEM
+  RELEASE
+}
+
+enum IdentityStatus {
+  UNVERIFIED
+  PENDING
+  VERIFIED
+  REJECTED
+}
+
+model User {
+  id               String        @id @default(cuid())
+  email            String        @unique
+  passwordHash     String
+  name             String
+  role             UserRole      @default(DONOR)
+  status           AccountStatus @default(ACTIVE)
+  isDemonstration  Boolean       @default(false)
+  createdAt        DateTime      @default(now())
+  updatedAt        DateTime      @updatedAt
+
+  donorProfile          DonorProfile?
+  business              BusinessPartner?
+  identity              IdentityVerification?
+  rewardAccount         RewardAccount?
+  donations             Donation[]             @relation("DonorDonations")
+  submittedDonations    Donation[]             @relation("SubmittedDonations")
+  verificationDecisions VerificationDecision[] @relation("OfficerDecisions")
+  redemptions           Redemption[]
+  rewardTransactions    RewardTransaction[]
+  auditLogs             AuditLog[]
+
+  @@index([role, status])
+}
+
+model DonorProfile {
+  id        String   @id @default(cuid())
+  userId    String   @unique
+  user      User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+  createdAt DateTime @default(now())
+}
+
+model BusinessPartner {
+  id           String         @id @default(cuid())
+  userId       String         @unique
+  user         User           @relation(fields: [userId], references: [id], onDelete: Cascade)
+  businessName String
+  description  String
+  status       BusinessStatus @default(PENDING)
+  offers       RewardOffer[]
+  createdAt    DateTime       @default(now())
+  updatedAt    DateTime       @updatedAt
+}
+
+model Donation {
+  id                    String         @id @default(cuid())
+  donorId               String
+  donor                 User           @relation("DonorDonations", fields: [donorId], references: [id], onDelete: Cascade)
+  donationReference     String         @unique
+  donationDate          DateTime
+  centerName            String
+  status                DonationStatus @default(PENDING)
+  submittedByOfficerId  String?
+  submittedByOfficer    User?          @relation("SubmittedDonations", fields: [submittedByOfficerId], references: [id])
+  decision              VerificationDecision?
+  rewardTransaction     RewardTransaction?
+  blockchainTransactions BlockchainTransaction[]
+  createdAt             DateTime       @default(now())
+  updatedAt             DateTime       @updatedAt
+
+  @@index([donorId, status])
+}
+
+model VerificationDecision {
+  id                    String                   @id @default(cuid())
+  donationId            String                   @unique
+  donation              Donation                 @relation(fields: [donationId], references: [id], onDelete: Cascade)
+  officerId             String
+  officer               User                     @relation("OfficerDecisions", fields: [officerId], references: [id])
+  decision              VerificationDecisionType
+  bloodServiceReference String
+  reason                String?
+  createdAt             DateTime                 @default(now())
+}
+
+model RewardAccount {
+  userId           String   @id
+  user             User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+  availablePoints  Int      @default(0)
+  reservedPoints   Int      @default(0)
+  lifetimeEarned   Int      @default(0)
+  lifetimeRedeemed Int      @default(0)
+  updatedAt        DateTime @updatedAt
+}
+
+model RewardRule {
+  id                        String   @id @default("default")
+  pointsPerVerifiedDonation Int
+  updatedAt                 DateTime @updatedAt
+}
+
+model RewardOffer {
+  id                           String          @id @default(cuid())
+  businessId                   String
+  business                     BusinessPartner @relation(fields: [businessId], references: [id], onDelete: Cascade)
+  name                         String
+  description                  String
+  pointsRequired               Int
+  availability                 String
+  terms                        String
+  instructions                 String
+  active                       Boolean         @default(true)
+  requiresIdentityVerification Boolean         @default(false)
+  redemptions                  Redemption[]
+  createdAt                    DateTime        @default(now())
+  updatedAt                    DateTime        @updatedAt
+}
+
+model Redemption {
+  id                     String                 @id @default(cuid())
+  donorId                String
+  donor                  User                   @relation(fields: [donorId], references: [id], onDelete: Cascade)
+  offerId                String
+  offer                  RewardOffer            @relation(fields: [offerId], references: [id])
+  pointsSpent            Int
+  status                 RedemptionStatus       @default(PENDING)
+  idempotencyKey         String                 @unique
+  rewardTransaction      RewardTransaction?
+  blockchainTransactions BlockchainTransaction[]
+  createdAt              DateTime               @default(now())
+  updatedAt              DateTime               @updatedAt
+
+  @@index([donorId, status])
+}
+
+model RewardTransaction {
+  id                    String                @id @default(cuid())
+  donorId               String
+  donor                 User                  @relation(fields: [donorId], references: [id], onDelete: Cascade)
+  type                  RewardTransactionType
+  points                Int
+  status                BlockchainTxStatus
+  donationId            String?               @unique
+  donation              Donation?             @relation(fields: [donationId], references: [id])
+  redemptionId          String?               @unique
+  redemption            Redemption?           @relation(fields: [redemptionId], references: [id])
+  blockchainTransaction BlockchainTransaction?
+  createdAt             DateTime              @default(now())
+
+  @@index([donorId, createdAt])
+}
+
+model BlockchainTransaction {
+  id                  String              @id @default(cuid())
+  kind                BlockchainTxKind
+  status              BlockchainTxStatus
+  txHash              String?
+  network             String
+  donationId          String?
+  donation            Donation?           @relation(fields: [donationId], references: [id])
+  redemptionId        String?
+  redemption          Redemption?         @relation(fields: [redemptionId], references: [id])
+  rewardTransactionId String?             @unique
+  rewardTransaction   RewardTransaction?  @relation(fields: [rewardTransactionId], references: [id])
+  error               String?
+  createdAt           DateTime            @default(now())
+  updatedAt           DateTime            @updatedAt
+
+  @@index([txHash])
+}
+
+model IdentityVerification {
+  userId      String         @id
+  user        User           @relation(fields: [userId], references: [id], onDelete: Cascade)
+  status      IdentityStatus @default(UNVERIFIED)
+  provider    String         @default("none")
+  externalRef String?
+  verifiedAt  DateTime?
+  updatedAt   DateTime       @updatedAt
+}
+
+model AuditLog {
+  id         String   @id @default(cuid())
+  actorId    String?
+  actor      User?    @relation(fields: [actorId], references: [id], onDelete: SetNull)
+  action     String
+  entityType String
+  entityId   String
+  metadata   Json?
+  createdAt  DateTime @default(now())
+
+  @@index([createdAt])
+  @@index([entityType, entityId])
+}

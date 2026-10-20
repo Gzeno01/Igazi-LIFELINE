@@ -1,15 +1,19 @@
 import type { Metadata } from "next";
 import Link from "next/link";
 
+import { AccountGate } from "@/components/account/account-gate";
 import { PageShell } from "@/components/layout/page-shell";
 import { Button } from "@/components/ui/button";
 import { sampleReward } from "@/lib/sample-reward";
+import { requireUser } from "@/server/current-user";
 
 export const metadata: Metadata = {
   title: "Redemption",
 };
 
-export default function RedeemPage() {
+async function RedeemScreen() {
+  await requireUser();
+
   return (
     <PageShell>
       <p className="text-sm font-medium text-primary">Redemption</p>
@@ -22,11 +26,10 @@ export default function RedeemPage() {
         balance and block a second spend of the same points.
       </p>
       <div className="mt-8 max-w-2xl rounded-xl border border-warning/40 bg-warning px-4 py-4 text-sm leading-6 text-warning-foreground">
-        <p className="font-semibold">Placeholder</p>
+        <p className="font-semibold">Not available yet</p>
         <p className="mt-1">
-          Redemption is not active. There is no point balance, and the sample
-          reward cannot be spent. No confirmation button is shown because it
-          would not complete a redemption.
+          Redemption is not active. The sample reward cannot be spent, so there
+          is no confirmation button.
         </p>
       </div>
       <div className="mt-8">
@@ -37,3 +40,12 @@ export default function RedeemPage() {
     </PageShell>
   );
 }
+
+export default function RedeemPage() {
+  return (
+    <AccountGate>
+      <RedeemScreen />
+    </AccountGate>
+  );
+}
+

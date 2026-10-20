@@ -101,13 +101,14 @@ export default function HomePage() {
             <CardHeader>
               <CardTitle>What this prototype includes</CardTitle>
               <CardDescription>
-                The public pages are ready. Accounts and live records come next.
+                Accounts are working. Donation verification and live redemption
+                come next.
               </CardDescription>
             </CardHeader>
             <CardContent className="flex flex-col gap-3 text-sm leading-6">
-              <p>Sign-in, donation history, and point balances are not connected yet.</p>
-              <p>A verified donation is planned to earn 100 points.</p>
-              <p>No donor names, medical records, or partnership claims are shown as real.</p>
+              <p>You can register as a donor or sign in with a labelled demonstration account.</p>
+              <p>A verified donation is planned to earn 100 points. An administrator can change that number.</p>
+              <p>Officers cannot be created from the public registration form.</p>
             </CardContent>
           </Card>
         </div>

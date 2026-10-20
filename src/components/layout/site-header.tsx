@@ -4,6 +4,7 @@ import Link from "next/link";
 import { usePathname } from "next/navigation";
 import { Droplet, Menu } from "lucide-react";
 
+import { signOutAction } from "@/app/login/actions";
 import { Button, buttonVariants } from "@/components/ui/button";
 import {
   Sheet,
@@ -14,6 +15,7 @@ import {
   SheetTitle,
   SheetTrigger,
 } from "@/components/ui/sheet";
+import { homeForRole, roleLabels, type UserRole } from "@/lib/roles";
 import { cn } from "cn";
 
 const links = [
@@ -22,6 +24,11 @@ const links = [
   { href: "/help", label: "Help" },
 ];
 
+export type HeaderAccount = {
+  name: string;
+  role: UserRole;
+} | null;
+
 function isCurrent(pathname: string, href: string) {
   if (href.includes("#")) {
     return false;
@@ -29,8 +36,9 @@ function isCurrent(pathname: string, href: string) {
   return pathname === href || pathname.startsWith(`${href}/`);
 }
 
-export function SiteHeader() {
+export function SiteHeader({ account }: { account: HeaderAccount }) {
   const pathname = usePathname();
+  const home = account ? homeForRole(account.role) : "/dashboard";
 
   return (
     <header className="sticky top-0 z-40 border-b bg-background/95 backdrop-blur">
@@ -62,12 +70,34 @@ export function SiteHeader() {
         </nav>
 
         <div className="ms-auto hidden items-center gap-2 md:flex">
-          <Button asChild variant="ghost" className="h-10 px-3">
-            <Link href="/login">Sign in</Link>
-          </Button>
-          <Button asChild className="h-10 px-4">
-            <Link href="/register">Become a Donor</Link>
-          </Button>
+          {account ? (
+            <>
+              <span className="text-sm text-muted-foreground">
+                {account.name}
+                <span className="sr-only">, {roleLabels[account.role]}</span>
+              </span>
+              <Button asChild variant="ghost" className="h-10 px-3">
+                <Link href={home}>Your area</Link>
+              </Button>
+              <Button asChild variant="ghost" className="h-10 px-3">
+                <Link href="/settings">Settings</Link>
+              </Button>
+              <form action={signOutAction}>
+                <Button type="submit" variant="outline" className="h-10 px-3">
+                  Sign out
+                </Button>
+              </form>
+            </>
+          ) : (
+            <>
+              <Button asChild variant="ghost" className="h-10 px-3">
+                <Link href="/login">Sign in</Link>
+              </Button>
+              <Button asChild className="h-10 px-4">
+                <Link href="/register">Become a Donor</Link>
+              </Button>
+            </>
+          )}
         </div>
 
         <Sheet>
@@ -84,7 +114,11 @@ export function SiteHeader() {
           <SheetContent side="right">
             <SheetHeader>
               <SheetTitle>Menu</SheetTitle>
-              <SheetDescription>Primary links and account actions.</SheetDescription>
+              <SheetDescription>
+                {account
+                  ? `${account.name}, ${roleLabels[account.role]}`
+                  : "Primary links and account actions."}
+              </SheetDescription>
             </SheetHeader>
             <nav aria-label="Mobile" className="flex flex-col gap-1 px-4">
               {links.map((link) => (
@@ -97,21 +131,48 @@ export function SiteHeader() {
                   </Link>
                 </SheetClose>
               ))}
+              {account ? (
+                <>
+                  <SheetClose asChild>
+                    <Link href={home} className="rounded-md px-3 py-3 text-base font-medium">
+                      Your area
+                    </Link>
+                  </SheetClose>
+                  <SheetClose asChild>
+                    <Link
+                      href="/settings"
+                      className="rounded-md px-3 py-3 text-base font-medium"
+                    >
+                      Settings
+                    </Link>
+                  </SheetClose>
+                </>
+              ) : null}
             </nav>
             <div className="mt-auto flex flex-col gap-2 p-4">
-              <SheetClose asChild>
-                <Link
-                  href="/login"
-                  className={cn(buttonVariants({ variant: "outline" }), "h-11")}
-                >
-                  Sign in
-                </Link>
-              </SheetClose>
-              <SheetClose asChild>
-                <Link href="/register" className={cn(buttonVariants(), "h-11")}>
-                  Become a Donor
-                </Link>
-              </SheetClose>
+              {account ? (
+                <form action={signOutAction}>
+                  <Button type="submit" variant="outline" className="h-11 w-full">
+                    Sign out
+                  </Button>
+                </form>
+              ) : (
+                <>
+                  <SheetClose asChild>
+                    <Link
+                      href="/login"
+                      className={cn(buttonVariants({ variant: "outline" }), "h-11")}
+                    >
+                      Sign in
+                    </Link>
+                  </SheetClose>
+                  <SheetClose asChild>
+                    <Link href="/register" className={cn(buttonVariants(), "h-11")}>
+                      Become a Donor
+                    </Link>
+                  </SheetClose>
+                </>
+              )}
             </div>
           </SheetContent>
         </Sheet>

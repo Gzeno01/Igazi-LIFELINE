@@ -33,8 +33,8 @@ export function SiteFooter() {
           </nav>
         </div>
         <p className="text-xs leading-5 text-muted-foreground">
-          Prototype shell. Accounts, donation records, and reward balances are
-          not connected yet. Points will be a reward score, not cash.
+          Prototype. Points are a reward score, not cash. Demonstration accounts
+          are labelled on the sign-in page.
         </p>
       </div>
     </footer>
